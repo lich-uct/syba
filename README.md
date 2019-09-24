@@ -1,0 +1,2 @@
+# syba
+Synthetic Bayesian Classification
