@@ -1,0 +1,41 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: syba
+  version: {{ data.get('version') }}
+
+build:
+  noarch: python
+#  always_include_files:
+#    - bin/nonpher.sh
+  preserve_egg_dir: True
+
+extra:
+  channels:
+    - rdkit
+    - lich
+
+source:
+  path: ../
+#  git_rev: latest
+#  git_url: file:///home/milan/workspace/nonpher
+
+requirements:
+  build:
+      - python
+      - setuptools
+
+  run:
+      - python >=3.6
+      - rdkit
+      - libboost =1.65 # rdkit 2018.3.1 is build against but it is not required
+
+# test:
+#  imports:
+#    - nonpher
+
+about:
+  home: https://github.com/lich-uct/nonpher
+  license: GPL-3.0
+  license_file: LICENSE
+  summary: "Software library for designing hard-to-synthesize structures"
