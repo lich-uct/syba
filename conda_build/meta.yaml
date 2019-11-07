@@ -17,8 +17,6 @@ extra:
 
 source:
   path: ../
-#  git_rev: latest
-#  git_url: file:///home/milan/workspace/nonpher
 
 requirements:
   build:
@@ -28,14 +26,9 @@ requirements:
   run:
       - python >=3.6
       - rdkit
-      - libboost =1.65 # rdkit 2018.3.1 is build against but it is not required
-
-# test:
-#  imports:
-#    - nonpher
 
 about:
-  home: https://github.com/lich-uct/nonpher
+  home: https://github.com/lich-uct/syba
   license: GPL-3.0
   license_file: LICENSE
-  summary: "Software library for designing hard-to-synthesize structures"
+  summary: "Software library for classifying easy- and hard-to-synthesize structures"

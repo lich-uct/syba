@@ -58,3 +58,6 @@ syba.predict(smi=smi, mol=mol)
 ```
 
 ## SYBA workflow
+How were fragment scores prepared for SYBA is accessible in `docs\notebooks\prepare_fragment_counts.ipynb` and calculation of SYBA score in Python script altogether with SAScore and SCScore is in `docs\notebooks\prepare_results.ipynb`.
+To run this notebooks, you will need to install Jupyter, preferably with conda `conda install jupyter`.
+

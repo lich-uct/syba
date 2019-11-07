@@ -8,7 +8,7 @@ setup(name='syba',
       author='Milan Vorsilak',
       license='GPL-3.0',
       packages=['syba',],
-      # package_data={'syba': ['resources/syba.csv.gz'],},
+      package_data={'syba': ['resources/syba.csv.gz'],},
       zip_safe=False,
       include_package_data=True,
      )
