@@ -32,15 +32,15 @@ class SybaClassifier:
     """
     def __init__(self):
         self.fragments = {}
-        self.n_syn_structures = None
-        self.n_non_structures = None
         self.ALL_OFF_FRAGS_SCORE = None
         self.pNS = None
+
 
     def fitDefaultScore(self):
         this_dir, this_filename = os.path.split(__file__)
         with gzip.open(os.path.join(this_dir, "resources", "syba.csv.gz"), mode="rt") as counts:
             self.fitFromCountFile(counts)
+
 
     def fitFromCountFile(self, reader):
         """
@@ -48,18 +48,35 @@ class SybaClassifier:
         """
         header = reader.readline()  # header is skipped
         spls = reader.readline().strip().split(",")
-        self.n_syn_structures = int(spls[1])
-        self.n_non_structures = int(spls[2])
-        self.pNS = math.log((self.n_non_structures + 2) / (self.n_syn_structures + 2))
+        n_syn_structures = int(spls[1])
+        n_non_structures = int(spls[2])
+        self.pNS = math.log((n_non_structures + 2) / (n_syn_structures + 2))
         self.ALL_OFF_FRAGS_SCORE = 0.0
         self.fragments = {}
         for line in reader:
             spls = line.strip().split(",")
             frg = int(spls[0])
             counts = (int(spls[1]), int(spls[2]))
-            scores = calculateScore(counts[0], counts[1], self.n_syn_structures, self.n_non_structures)
+            scores = calculateScore(counts[0], counts[1], n_syn_structures, n_non_structures)
             self.fragments[frg] = scores
             self.ALL_OFF_FRAGS_SCORE+=self.pNS + scores[1]
+
+
+    def fitFromScoreFile(self, reader, pNS=0):
+        """
+        """
+        header = reader.readline()  # header is skipped
+        spls = reader.readline().strip().split(",")
+        self.pNS = pNS
+        self.ALL_OFF_FRAGS_SCORE = 0.0
+        self.fragments = {}
+        for line in reader:
+            spls = line.strip().split(",")
+            frg = int(spls[0])
+            scores = (float(spls[1]), float(spls[2]))
+            self.fragments[frg] = scores
+            self.ALL_OFF_FRAGS_SCORE+=self.pNS + scores[1]
+
 
     def predict(self, smi=None, mol=None):
         if smi:
@@ -73,16 +90,31 @@ class SybaClassifier:
                 score += frg_score[0]
         return score
 
-    def predict2(self, smi=None, mol=None):
+
+    def predict_with_only_present_fragments(self, smi=None, mol=None):
         if smi:
             mol = Chem.MolFromSmiles(smi)
-        mol = ch.MolFromSmiles(smi)
         frgs = ch.GetMorganFingerprint(mol,2)
         score = 0.0
         for frg,y in frgs.GetNonzeroElements().items():
             if x in self.fragments:
                 score += self.pNS + self.fragments[frg][0]
         return score
+
+
+    def fragment_contribution(self, smi=None, mol=None):
+        if smi:
+            mol = Chem.MolFromSmiles(smi)
+        contribs = [0 for a in mol.GetAtoms()]
+        info={}
+        fp = Chem.GetMorganFingerprint(mol,2,bitInfo=info)
+        for key, vals in info.items():
+            if key in self.fragments:
+                s = self.fragments[key][0]
+                for a,n in vals:
+                    contribs[a]+=s
+        return contribs
+
 
 def SmiMolSupplier(reader, header=False, smi_col=0, delim=","):
     if header:
@@ -125,11 +157,14 @@ def getFragmentSmiles(m):
     return env
 
 
-def processFile(reader, get_fragments=False):
+def processFile(mol_supplier, get_fragments=False):
     """
-    """
-    suppl = SmiMolSupplier(reader, header=True, smi_col=1)
+    For given compressed file, function returns number of all compounds and all Morgan fragment types with corresponding number of compounds
+    in which they are found.
 
+    path to data set (gzip csv file)
+    smi_col is column where are SMILES, first column has index 0!
+    """
     fs = {}
     if get_fragments:
         def updateFragments(m):
@@ -143,14 +178,11 @@ def processFile(reader, get_fragments=False):
                 d = fs.setdefault(frag, [0])
                 d[0] += 1
     n_of_compounds = 0
-    for m, *spls in suppl:
-        try:
-            updateFragments(m)
-            n_of_compounds += 1
-        except Exception as e:
-            print(spls)
-            raise e
+    for m in mol_supplier:
+        updateFragments(m)
+        n_of_compounds += 1
     return fs, n_of_compounds
+
 
 def mergeFragmentCounts(feasible_fragments, infeasible_fragments):
     fragments = set(feasible_fragments.keys())
@@ -161,8 +193,10 @@ def mergeFragmentCounts(feasible_fragments, infeasible_fragments):
         fragment_counts[f] = (feasible_fragments.get(f, [0])[0], infeasible_fragments.get(f, [0])[0])
     return fragment_counts
 
+
 def calculateScore(feasible_count, infeasible_count, feasible_compound_count, infeasible_compound_count):
     return math.log((feasible_count+1)/(infeasible_count+1)), math.log((feasible_compound_count-feasible_count+1)/(infeasible_compound_count-infeasible_count+1))
+
 
 def writeScoreFile(filename, fragments_counts, compound_counts):
     with open(filename, "w") as out:
@@ -170,12 +204,14 @@ def writeScoreFile(filename, fragments_counts, compound_counts):
         for fragment_id, counts in fragments_counts.items():
             out.write("{},{},{}\n".format(fragment_id, *calculateScore(counts[0], counts[1], compound_counts[0], compound_counts[1])))
 
+
 def writeCountFile(filename, fragments_counts, compound_counts):
     with open(filename, "w") as out:
         out.write("fragment_id,feasible_compounds,infeasible_compounds\n")
         out.write("total_compounds,{},{}\n".format(compound_counts[0], compound_counts[1]))
         for fragment_id, counts in fragments_counts.items():
             out.write("{},{},{}\n".format(fragment_id, counts[0], counts[1]))
+
 
 if __name__ == "__main__":
     import argparse
@@ -198,5 +234,6 @@ if __name__ == "__main__":
         if header:
             inp.readline()
         supp = SmiMolSupplier(inp, smi_col=1)
+        out.write("ID,SMILES,SYBA\n")
         for mol, *spls in supp:
-            out.write(f"{Chem.MolToSmiles(mol)}, {syba.predict(mol=mol)}\n")
+            out.write(f"{spls[0]},{Chem.MolToSmiles(mol)},{syba.predict(mol=mol)}\n")

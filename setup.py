@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(name='syba',
-      version='1.0.0',
+      version='1.0.1',
       description='SYBA',
       url='https://github.com/lich-uct/syba',
       author='Milan Vorsilak',
