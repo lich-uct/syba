@@ -30,10 +30,19 @@ class SybaClassifier:
     """
     SYBA clasifier
     """
-    def __init__(self):
+    def __init__(self, neighbourhood=2):
         self.fragments = {}
         self.ALL_OFF_FRAGS_SCORE = None
         self.pNS = None
+        self.neighbourhood = neighbourhood
+        self.chiral_scores = {
+                 0: (1.8084159515032894, -0.4675609913440742),
+                 1: (0.8694169068939861, -0.25951468034597774),
+                 2: (-0.10727513159632096, 0.025893146969645207),
+                 3: (-1.4655318562675832, 0.19407129808044743),
+                 4: (-2.939230216688627, 0.1883123534101861),
+                 5: (-4.536353950205819, 0.2060140915608036)
+                }
 
 
     def fitDefaultScore(self):
@@ -78,27 +87,31 @@ class SybaClassifier:
             self.ALL_OFF_FRAGS_SCORE+=self.pNS + scores[1]
 
 
-    def predict(self, smi=None, mol=None):
+    def predict(self, smi=None, mol=None, useChiral=False):
         if smi:
             mol = Chem.MolFromSmiles(smi)
-        frgs = Chem.GetMorganFingerprint(mol,2)
+        frgs = Chem.GetMorganFingerprint(mol,self.neighbourhood)
         score = self.ALL_OFF_FRAGS_SCORE
         for frg,y in frgs.GetNonzeroElements().items():
             if frg in self.fragments:
                 frg_score = self.fragments[frg]
                 score -= frg_score[1]
                 score += frg_score[0]
+        if useChiral:
+            score += self._getChiralScore(mol, includeAbsentChiralities=True)
         return score
 
 
-    def predict_with_only_present_fragments(self, smi=None, mol=None):
+    def predict_with_only_present_fragments(self, smi=None, mol=None, useChiral=False):
         if smi:
             mol = Chem.MolFromSmiles(smi)
-        frgs = ch.GetMorganFingerprint(mol,2)
+        frgs = ch.GetMorganFingerprint(mol,self.neighbourhood)
         score = 0.0
         for frg,y in frgs.GetNonzeroElements().items():
             if x in self.fragments:
                 score += self.pNS + self.fragments[frg][0]
+        if useChiral:
+            score += self._getChiralScore(mol, includeAbsentChiralities=False)
         return score
 
 
@@ -107,13 +120,24 @@ class SybaClassifier:
             mol = Chem.MolFromSmiles(smi)
         contribs = [0 for a in mol.GetAtoms()]
         info={}
-        fp = Chem.GetMorganFingerprint(mol,2,bitInfo=info)
+        fp = Chem.GetMorganFingerprint(mol,self.neighbourhood,bitInfo=info)
         for key, vals in info.items():
             if key in self.fragments:
                 s = self.fragments[key][0]
                 for a,n in vals:
                     contribs[a]+=s
         return contribs
+
+    def _getChiralScore(self, mol, includeAbsentChiralities=True):
+        chiral_count = Chem.CalcNumAtomStereoCenters(mol)
+        if chiral_count > max(self.chiral_scores.keys()):
+            chiral_count = max(self.chiral_scores.keys())
+        elif chiral_count < 0:
+            raise Exception("Compound can't have negative chiral count")
+        if includeAbsentChiralities:
+            return sum(c[0] if k == chiral_count else c[1] for k, c in self.chiral_scores.items())
+        else:
+            return self.chiral_scores[chiral_count][0]
 
 
 def SmiMolSupplier(reader, header=False, smi_col=0, delim=","):
@@ -148,16 +172,16 @@ def getEnvironment(m, values):
             return m.GetAtomWithIdx(atom).GetSymbol()
 
 
-def getFragmentSmiles(m):
+def getFragmentSmiles(m, neighbourhood=2):
     info={}
-    fp = Chem.GetMorganFingerprint(m,2,bitInfo=info)
+    fp = Chem.GetMorganFingerprint(m,neighbourhood,bitInfo=info)
     env = []
     for i in info:
         env.append((i,getEnvironment(m,info[i])))
     return env
 
 
-def processFile(mol_supplier, get_fragments=False):
+def processFile(mol_supplier, get_fragments=False, neighbourhood=2):
     """
     For given compressed file, function returns number of all compounds and all Morgan fragment types with corresponding number of compounds
     in which they are found.
@@ -174,7 +198,7 @@ def processFile(mol_supplier, get_fragments=False):
                 d[1].add(smi)
     else:
         def updateFragments(m):
-            for frag in Chem.GetMorganFingerprint(m,2).GetNonzeroElements().keys():
+            for frag in Chem.GetMorganFingerprint(m,neighbourhood).GetNonzeroElements().keys():
                 d = fs.setdefault(frag, [0])
                 d[0] += 1
     n_of_compounds = 0
