@@ -30,7 +30,7 @@ class SybaClassifier:
     """
     SYBA clasifier
     """
-    def __init__(self, neighbourhood=2):
+    def __init__(self, neighbourhood=4):
         self.fragments = {}
         self.ALL_OFF_FRAGS_SCORE = None
         self.pNS = None
@@ -47,13 +47,12 @@ class SybaClassifier:
 
     def fitDefaultScore(self):
         this_dir, this_filename = os.path.split(__file__)
-        with gzip.open(os.path.join(this_dir, "resources", "syba.csv.gz"), mode="rt") as counts:
+        with gzip.open(os.path.join(this_dir, "resources", "syba4.csv.gz"), mode="rt") as counts:
             self.fitFromCountFile(counts)
 
 
     def fitFromCountFile(self, reader):
         """
-        XXX
         """
         header = reader.readline()  # header is skipped
         spls = reader.readline().strip().split(",")
@@ -181,7 +180,7 @@ def getFragmentSmiles(m, neighbourhood=2):
     return env
 
 
-def processFile(mol_supplier, get_fragments=False, neighbourhood=2):
+def processFile(mol_supplier, get_fragments=False, neighbourhood=4):
     """
     For given compressed file, function returns number of all compounds and all Morgan fragment types with corresponding number of compounds
     in which they are found.
