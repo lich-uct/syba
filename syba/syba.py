@@ -86,7 +86,7 @@ class SybaClassifier:
             self.ALL_OFF_FRAGS_SCORE+=self.pNS + scores[1]
 
 
-    def predict(self, smi=None, mol=None, useChiral=False):
+    def predict(self, smi=None, mol=None, useChiral=True):
         if smi:
             mol = Chem.MolFromSmiles(smi)
         frgs = Chem.GetMorganFingerprint(mol,self.neighbourhood)
@@ -101,7 +101,7 @@ class SybaClassifier:
         return score
 
 
-    def predict_with_only_present_fragments(self, smi=None, mol=None, useChiral=False):
+    def predict_with_only_present_fragments(self, smi=None, mol=None, useChiral=True):
         if smi:
             mol = Chem.MolFromSmiles(smi)
         frgs = ch.GetMorganFingerprint(mol,self.neighbourhood)
