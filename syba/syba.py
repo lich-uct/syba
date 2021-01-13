@@ -236,7 +236,7 @@ def writeCountFile(filename, fragments_counts, compound_counts):
             out.write("{},{},{}\n".format(fragment_id, counts[0], counts[1]))
 
 
-if __name__ == "__main__":
+def main():
     import argparse
     import sys
 
@@ -260,3 +260,7 @@ if __name__ == "__main__":
         out.write("ID,SMILES,SYBA\n")
         for mol, *spls in supp:
             out.write(f"{spls[0]},{Chem.MolToSmiles(mol)},{syba.predict(mol=mol)}\n")
+
+
+if __name__ == "__main__":
+    main()
