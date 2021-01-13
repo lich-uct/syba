@@ -24,10 +24,11 @@ python setup.py install
 ## Quick start
 SYBA input is a CSV (comma-separated value) file consisting of the following columns: CMPND_ID,SMILES,OTHER_COLUMNS. OTHER_COLUMNS can contain any additional data and these columns are skipped. Output is a CSV file in the format ID,SMILES,SYBA_SCORE. SYBA reflects how confident the classifier is with its prediction (i.e., SYBA score can't be considered as a measure of the ease of synthesis). Negative SYBA values mean a hard-to-synthesize compound and positive mean an easy-to-synthesize one.
 
+SYBA is automatically installs a command line tool `syba`.
 SYBA classification is performed by the following command:
 
 ```bash
-python -m syba.syba [INPUT_FILE [OUTPUT_FILE]]
+$ syba [INPUT_FILE [OUTPUT_FILE]]
 ```
 ## Use in Python script
 ### Basic usage
