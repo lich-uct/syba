@@ -11,4 +11,9 @@ setup(name='syba',
       package_data={'syba': ['resources/syba.csv.gz', 'resources/syba4.csv.gz'],},
       zip_safe=False,
       include_package_data=True,
+      entry_points={
+          'console_scripts': [
+              'syba = syba.syba:main',
+          ],
+      },
      )
